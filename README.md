@@ -13,6 +13,7 @@ The goal of this project is to get an MVP agentic bookmark organizer that can ta
 ## How it works
 
 A local LLM is hooked up to Python using the ollama library. When the Python program is run, there will be an initial greeting message. Here, you can ask it to organize your bookmarks. It will then prompt you to enter your bookmarks file (must be in the Netscape HTML format or MS Edge JSON format), process it, brainstorm a new taxonomy, organize your bookmarks, and then present its proposed plan to you. You can then either respond with `/approve` or /`reject` to approve or reject the plan in the terminal line. 
+![Architectural Diagram](docs/Architectural%20Flowchart.drawio.png)
 
 ## Tech Stack
 
