@@ -2,14 +2,31 @@ from ollama import chat
 from pydantic import BaseModel
 import json
 from bs4 import BeautifulSoup
+from tkinter import filedialog
 
 # Define our tools
+# When we define the tools, it's ideal to use type-hinting and docstrings
+# So the agent knows what a function does when reading it off
 
 def organize() -> str:
     """
     Get the user's bookmark file and begins taxonomy creation process.
     """
-    pass
+
+    # Ask the user to import their bookmark file
+    file_path = filedialog.askopenfilename(
+        title="Select your bookmark file",
+        filetypes=[("JSON files", "*.json"), ("HTML files", "*.html"), 
+                   ("All files", "*.*")]
+    )
+
+    # Handle user pressing cancel or not uploading anything
+    if file_path:
+        # If the user does specify something, file_path will be a string
+        # to the file
+        pass
+    else:
+        return "User cancelled importing the bookmark file"
 
 # System prompt to help give the LLM context
 # Use parenthesized string so we can output in one line but code with
@@ -52,6 +69,7 @@ available_functions = {
     "organize": organize
 }
 
+# At the same time, define a list of tools to pass in for each message
 tools = [organize]
 
 # Functions
@@ -59,6 +77,8 @@ tools = [organize]
 def call_tools(tool_calls):
     for call in tool_calls:
         func = available_functions.get(call.function.name)
+
+        # Ensure the toolcall exists
 
         if func is not None:
             result = func(**call.function.arguments)
