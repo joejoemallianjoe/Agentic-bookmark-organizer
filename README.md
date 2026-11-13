@@ -24,6 +24,7 @@ A local LLM is hooked up to Python using the ollama library. When the Python pro
 ## Roadmap
 
 - [ ] Pull real-time bookmarks without user needing to upload bookmark file
+- [ ] Add cross-browser compatibility with internal browser format --> intermediate Netscape HTML format --> project-specific yaml
 - [ ] Automatically replace bookmarks once approved without needing to generate export file
 - [ ] Experiment with shorter/more concise file formats and prompts to save tokens
 - [ ] Add "Uncertain" category to ask user follow-up questions
