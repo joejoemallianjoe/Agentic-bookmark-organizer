@@ -1,8 +1,15 @@
 from ollama import chat
 from pydantic import BaseModel
 import json
+import yaml
 from bs4 import BeautifulSoup
 from tkinter import filedialog
+import bookmarks_parser
+
+# General functions
+
+def parse_netscape_html(bookmark_data) -> dict:
+    pass
 
 # Define our tools
 # When we define the tools, it's ideal to use type-hinting and docstrings
@@ -14,16 +21,25 @@ def organize() -> str:
     """
 
     # Ask the user to import their bookmark file
+    # Problem: Chromem bookmmarks are stored as just a generic "File"
+    # file type.
     file_path = filedialog.askopenfilename(
         title="Select your bookmark file",
-        filetypes=[("JSON files", "*.json"), ("HTML files", "*.html"), 
+        filetypes=[("HTML files", "*.html"), 
                    ("All files", "*.*")]
     )
 
     # Handle user pressing cancel or not uploading anything
     if file_path:
+        bookmark_dict = parse_netscape_html(bookmarks_parser.parse(file_path))
+
         # If the user does specify something, file_path will be a string
         # to the file
+        
+        # We need to handle both the HTML and the JSON bookmark formats
+        # First get the file tho
+
+        
         pass
     else:
         return "User cancelled importing the bookmark file"
@@ -92,3 +108,5 @@ def call_tools(tool_calls):
         })
 
 print(greeting_message)
+
+print(organize())
