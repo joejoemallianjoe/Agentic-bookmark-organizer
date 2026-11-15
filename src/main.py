@@ -36,6 +36,8 @@ def organize() -> str:
 # Use parenthesized string so we can output in one line but code with
 # multiple lines
 
+model = "qwen3.5:4b"
+
 system_prompt = (
     "You are a helpful browser bookmark assistant. You help the user organize "
     "their browser bookmarks. Your task is to develop a logical, clear, "
@@ -46,7 +48,7 @@ system_prompt = (
 # Initial chatbot greeting message
 
 greeting_message = (
-    "Hello! I am your personal bookmark organizer assistant. Type "
+    f"[{model}]: Hello! I am your personal bookmark organizer assistant. Type "
     "/organize to input a bookmark file, and I will generate a proposed "
     "taxonomy and classification for you. Alternatively, ask me to organize "
     "your files and I will call it for you!"
@@ -79,15 +81,12 @@ tools = [organize]
 # General functions
 
 def call_tools(tool_calls):
-    print("tools called")
     for call in tool_calls:
         func = available_functions.get(call.function.name)
 
         # Ensure the toolcall exists
 
         if func is not None:
-            print("specific tool called")
-            print(call.function)
             result = func(**call.function.arguments)
         else:
             result = f"No tool with the name '{call.function.name}' was found."
@@ -114,5 +113,27 @@ def process_bookmark_data(file_path):
     # broad except Exception code specifically to processing data only.
     except Exception as e:
         raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
+
+def message(message: str = None, think:bool = False) -> str:
+    if message is not None:
+        messages.append({
+            "role": "user",
+            "content": message
+        })
+
+        print(f"[User]: {message}")
+
+    while True:
+        response = chat(
+            model=model,
+            messages=messages,
+            tools=tools,
+            think=think
+        )
+
+        if not response.message.tool_calls:
+            return response.message.content
+
+        call_tools(response.message.tool_calls)
 
 print(greeting_message)
