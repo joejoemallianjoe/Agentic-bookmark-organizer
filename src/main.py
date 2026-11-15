@@ -6,25 +6,6 @@ from bs4 import BeautifulSoup
 from tkinter import filedialog
 import bookmarks_parser
 
-# General functions
-
-def process_bookmark_data(file_path):
-    with open(file_path, "r") as file:
-        first_line = file.readline().strip()
-
-        if first_line != "<!DOCTYPE NETSCAPE-Bookmark-file-1>":
-            raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
-            # Check failed
-        
-    try:
-        return bookmarks_parser.parse(file_path)
-    # Why catch Exception? bookmarks_parser doesn't have a dedicated validation feature for
-    # netscape HTML, which means no dedicated exception for an invalid/malformatted HTML file.
-    # This means it could throw any number of unpredictable exceptions. We'll isolate this
-    # broad except Exception code specifically to processing data only.
-    except Exception as e:
-        raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
-
 # Define our tools
 # When we define the tools, it's ideal to use type-hinting and docstrings
 # So the agent knows what a function does when reading it off
@@ -95,7 +76,7 @@ available_functions = {
 # At the same time, define a list of tools to pass in for each message
 tools = [organize]
 
-# Functions
+# General functions
 
 def call_tools(tool_calls):
     print("tools called")
@@ -116,5 +97,22 @@ def call_tools(tool_calls):
             "tool_name": call.function.name,
             "content": str(result)
         })
+
+def process_bookmark_data(file_path):
+    with open(file_path, "r") as file:
+        first_line = file.readline().strip()
+
+        if first_line != "<!DOCTYPE NETSCAPE-Bookmark-file-1>":
+            raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
+            # Check failed
+        
+    try:
+        return bookmarks_parser.parse(file_path)
+    # Why catch Exception? bookmarks_parser doesn't have a dedicated validation feature for
+    # netscape HTML, which means no dedicated exception for an invalid/malformatted HTML file.
+    # This means it could throw any number of unpredictable exceptions. We'll isolate this
+    # broad except Exception code specifically to processing data only.
+    except Exception as e:
+        raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
 
 print(greeting_message)
