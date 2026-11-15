@@ -8,8 +8,22 @@ import bookmarks_parser
 
 # General functions
 
-def parse_netscape_html(bookmark_data) -> dict:
-    pass
+def process_bookmark_data(file_path):
+    with open(file_path, "r") as file:
+        first_line = file.readline().strip()
+
+        if first_line != "<!DOCTYPE NETSCAPE-Bookmark-file-1>":
+            raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
+            # Check failed
+        
+    try:
+        return bookmarks_parser.parse(file_path)
+    # Why catch Exception? bookmarks_parser doesn't have a dedicated validation feature for
+    # netscape HTML, which means no dedicated exception for an invalid/malformatted HTML file.
+    # This means it could throw any number of unpredictable exceptions. We'll isolate this
+    # broad except Exception code specifically to processing data only.
+    except Exception as e:
+        raise ValueError("File failed Netscape HTML checks. Check if file is valid Netscape HTML.")
 
 # Define our tools
 # When we define the tools, it's ideal to use type-hinting and docstrings
@@ -20,25 +34,18 @@ def organize() -> str:
     Get the user's bookmark file and begins taxonomy creation process.
     """
 
-    # Ask the user to import their bookmark file
-    # Problem: Chromem bookmmarks are stored as just a generic "File"
-    # file type.
-    file_path = filedialog.askopenfilename(
+    print("[TOOL]: Prompting user for file")
+    file_path: str = filedialog.askopenfilename(
         title="Select your bookmark file",
-        filetypes=[("HTML files", "*.html"), 
-                   ("All files", "*.*")]
+        filetypes=[("HTML files", "*.html")]
     )
 
     # Handle user pressing cancel or not uploading anything
     if file_path:
-        bookmark_dict = parse_netscape_html(bookmarks_parser.parse(file_path))
-
-        # If the user does specify something, file_path will be a string
-        # to the file
-        
-        # We need to handle both the HTML and the JSON bookmark formats
-        # First get the file tho
-
+        try:
+            bookmark_data = process_bookmark_data(file_path)
+        except ValueError:
+            return "User uploaded malformatted HTML file that does not match expected Netscape HTML format."
         
         pass
     else:
@@ -91,12 +98,15 @@ tools = [organize]
 # Functions
 
 def call_tools(tool_calls):
+    print("tools called")
     for call in tool_calls:
         func = available_functions.get(call.function.name)
 
         # Ensure the toolcall exists
 
         if func is not None:
+            print("specific tool called")
+            print(call.function)
             result = func(**call.function.arguments)
         else:
             result = f"No tool with the name '{call.function.name}' was found."
@@ -108,5 +118,3 @@ def call_tools(tool_calls):
         })
 
 print(greeting_message)
-
-print(organize())
