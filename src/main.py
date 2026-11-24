@@ -84,6 +84,12 @@ def call_tools(tool_calls):
     for call in tool_calls:
         func = available_functions.get(call.function.name)
 
+        messages.append({
+            "role": "assistant",
+            "content": f"Called {call.function.name} tool. Args:\n" + 
+                       "\n".join(f"{key}={value}" for key, value in call.function.arguments.items())
+        })
+
         # Ensure the toolcall exists
 
         if func is not None:
