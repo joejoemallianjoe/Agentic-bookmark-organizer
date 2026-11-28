@@ -1,0 +1,22 @@
+An unorganized, random sample of bookmarks/bookmark folders has been provided. Output only a taxonomy with potential categories.
+
+Rules:
+- Prefer a small number of broad, meaningful categories
+- Create subcategories when multiple bookmarks justify them
+- Include AT MOST 2 representative bookmark titles for an ambiguous, unclear category
+- No examples for obvious categories
+- No markdown bolding or headings
+
+Examples of obvious categories:
+- Education
+- Mathematics
+- School
+
+Examples of unclear categories:
+- Miscellaneous
+- Other
+
+Example output:
+Vehicles:
+- Cars
+- Motorcycles

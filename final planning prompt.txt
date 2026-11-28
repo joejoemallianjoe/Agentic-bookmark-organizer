@@ -1,0 +1,36 @@
+Multiple LLMs have looked at different random samples of bookmarks/bookmark folders to create various taxonomies. Synthesize these categories together into one unified, final taxonomy. Follow these rules:
+
+Rules:
+- Prioritize top-level, broad categories first, then subdivide into more specific categories if 2+ bookmarks justify that subcategory.
+Example:
+School --> broken down into subcategories High School, College
+- Prioritize merging and/or creating supercategories if categories are similar enough
+Example:
+Before: Machine learning, Reinforcement learning, Deep learning
+After: (Supercategory) Machine Learning --> (subcategories) Classical Machine Learning, Reinforcement learning
+- Create new categories if needed
+
+Output only JSON following the example format:
+```
+{
+  "plan": "Move overlapping game dev categories (Unity, Scratch, Roblox) into supercategory Game development, then create subcategories Unity, Scratch, and Roblox....",
+  "taxonomy": [
+    {
+      "name": "Game development",
+      "children": [
+        {
+          "name": "Unity"
+        },
+        {
+          "name": "Scratch"
+        },
+	{
+	  "name": "Roblox"
+	}
+      ]
+    }
+  ]
+}
+```
+
+Use the "plan" key-value pair to plan your taxonomy. Then, write your final taxonomy in the "taxonomy" key-value pair. Folders with no children should not have the "children" key.
