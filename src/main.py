@@ -56,9 +56,11 @@ def organize() -> str:
 model = "qwen3.5:4b"
 tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3.5-4B")
 
+# Token budgets
 tokens_per_batch = 3000
 context_window_size = 8192
 planning_response_budget = 2000
+final_synthesis_budget = 2000
 
 system_prompt = (
     "You are a helpful browser bookmark assistant. You help the user organize "
@@ -77,37 +79,12 @@ greeting_message = (
 )
 
 # Intermediate planning prompt for chunks
+with open("chunk prompt.txt", "r") as file:
+  chunk_prompt = file.read()
 
-initial_chunk_planning_prompt = (
-    "A random, unorganized sample of bookmarks/bookmark folders has been provided. "
-    "Your goal is to generate a taxonomy with cohesive, logical, precise, and comprehensive "
-    "categories. Follow three phases: drafting, evaluation, and finalization.\n"
-    "\n"
-    "Phase 1: Drafting\n"
-    "Brainstorm possible categories and sub-categories with justifications of why you chose "
-    "certain categories and sub-categories.\n"
-    "\n"
-    "Phase 2: Evaluation\n"
-    "Evaluate your current taxonomy. Decide whether merging, subcategorizing, removing, or moving "
-    "categories is necessary, or if no change is needed. Additionally, consider if new categories "
-    "are needed or not.\n"
-    "\n"
-    "Phase 3: Finalization\n"
-    "Write your final taxonomy using your final set of categories. Underneath it, add a brief "
-    "justification paragraph summarizing your core reasons for organizing it this way.\n"
-    "\n"
-    "Use concise, information-dense text. Use shorthand if possible."
-)
-
-intermediate_chunk_planning_addition = (
-    "\n\nAdditionally, a previously planned taxonomy with justifications based on a different"
-    "sample has been provided below. Build off this taxonomy. \n\n Previous taxonomy:"
-)
-
-final_chunk_planning_prompt = (
-    "\n\nA carefully thought-out taxonomy with justifications has been provided. Extract the final "
-    "taxonomy into a JSON format. Output only JSON."
-)
+# Final planning prompt
+with open("final planning prompt.txt", "r") as file:
+  final_taxonomy_prompt = file.read()
 
 # Keep track of message history (LLMs don't "remember" past messages unless
 # you manually specify them)
@@ -200,28 +177,31 @@ def generate_final_taxonomy(validated_bookmark_python, tokens_per_batch=tokens_p
 
         current_directory = f"{parent_directory}/{node["title"]}"
         object_dict = {
-            "type": "other",
-            "name": node["title"],
+            #"type": "other",
             "directory": current_directory
         }
 
         # Due to weird browser-specific quirks, not all folders have "type": "folder", 
         # so having the key "children" is a sufficient proxy
         if node.get("children") is not None:
-            object_dict["type"] = "folder"
+            #object_dict["type"] = "folder"
             # Add its children to the stack
 
             for child in reversed(node["children"]):
                 stack.append((child, current_directory))
         elif node.get("type") == "bookmark":
-            object_dict["type"] = "bookmark"
+            #object_dict["type"] = "bookmark"
             object_dict["url"] = node["url"]
 
         flattened_list.append(object_dict)
 
+    print("Chunked bookmark data")
+
     # Randomly sample chunks to feed to the local LLM
 
     previous_chunk_taxonomy = None
+    chunks = []
+    i = 1
 
     while len(flattened_list) > 0:
         batch = []
@@ -235,6 +215,8 @@ def generate_final_taxonomy(validated_bookmark_python, tokens_per_batch=tokens_p
             if sample_token_count > tokens_per_batch:
                 print("Warning: Bookmark folder/object exceeded max token budget per batch. " + 
                       "Skipped bookmark folder/object.")
+                flattened_list.pop(index)
+
                 continue
             elif current_total_tokens + sample_token_count > tokens_per_batch:
                 break
@@ -242,38 +224,55 @@ def generate_final_taxonomy(validated_bookmark_python, tokens_per_batch=tokens_p
                 batch.append(flattened_list[index])
                 flattened_list.pop(index)
                 current_total_tokens += sample_token_count
+        
+        print(f"Processing chunk {i}...")
+        prompt = yaml.dump(batch, sort_keys=False) + "\n\n" + chunk_prompt
 
-        prompt = yaml.dump(batch, sort_keys=False) + initial_chunk_planning_prompt
-
-        if previous_chunk_taxonomy:
-            prompt += (intermediate_chunk_planning_addition + 
-                       "\"\"\"\n" + previous_chunk_taxonomy + "\n\"\"\"")
-
-        previous_chunk_taxonomy = message(
+        # Disable tools so it doesn't get into an infinite tool-calling loop
+        chunk_taxonomy = message(
             prompt, 
             messages=messages[0:1],
+            tools=None,
             options={
                 "num_ctx": context_window_size,
                 "num_predict": planning_response_budget
             }
         )
 
-    # Use pydantic or smth to validate this later
+        chunks.append(chunk_taxonomy)
+        print(f"Processed chunk {i}")
+
+        i += 1
+    
+    # Join all the chunks together into one string for synthesis stage
+    # Compute tokens to dynamically adjust context window size b/c it's
+    # variable
+    synthesis_data = "\n======\n".join(chunks)
+    data_token_count = len(tokenizer.encode(synthesis_data))
+    prompt_token_count = len(tokenizer.encode(final_taxonomy_prompt))
+    final_context_size = data_token_count + prompt_token_count + final_synthesis_budget
+
+    # Use pydantic to validate this later
+    print("Synthesizing final taxonomy")
     final_taxonomy = message(
-        "\"\"\"\n" + previous_chunk_taxonomy + "\n\"\"\"" + final_chunk_planning_prompt,
-        messages=messages[0:1]
+        synthesis_data + "\n---------\n" + final_taxonomy_prompt,
+        messages=messages[0:1],
+        tools=None,
+        options={
+            "num_ctx": final_context_size
+        }
     )
 
     return final_taxonomy
 
-def message(message: str = None, think:bool = False, messages=messages, options=None) -> str:
+def message(message: str = None, tools=tools, think:bool = False, messages=messages, options=None) -> str:
     if message is not None:
         messages.append({
             "role": "user",
             "content": message
         })
 
-        print(f"[User]: {message}")
+        #print(f"[User]: {message}")
 
     while True:
         params = {
